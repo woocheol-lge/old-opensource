@@ -6,8 +6,10 @@ import {
   type GithubSearchItem,
   RateLimitedError,
   searchAlternatives,
+  searchByFullName,
   searchByName,
 } from "./github-search";
+import { parseGithubFullName } from "./github-url";
 import { summarizeReadme } from "./readme-summary";
 import { type WarningLevel, warningLevelFor } from "./staleness";
 
@@ -160,6 +162,53 @@ export async function lookupRepositories(
     ]);
 
     return { status: "ok", candidates, alternatives };
+  } catch (error) {
+    if (error instanceof RateLimitedError) return { status: "rate-limited" };
+    const message =
+      error instanceof Error ? error.message : "레포지토리를 불러오지 못했습니다.";
+    return { status: "failed", message };
+  }
+}
+
+export type PinnedLookupResult =
+  | {
+      status: "ok";
+      candidate: RepositoryCandidate;
+      alternatives: Alternatives | null;
+    }
+  | { status: "empty" }
+  | { status: "invalid-url" }
+  | { status: "not-found" }
+  | { status: "rate-limited" }
+  | { status: "failed"; message: string };
+
+/**
+ * 사용자가 알고 있는 GitHub 링크(또는 owner/repo 표기)로 레포지토리
+ * 하나를 정확히 찾는다. 이름 검색의 애매함을 피하고 싶을 때 쓴다.
+ * `repo:` 한정자도 search 버킷을 쓰므로 이름 검색과 같은 한도를 공유한다.
+ */
+export async function lookupRepositoryByUrl(
+  rawInput: string,
+  now: Date = new Date()
+): Promise<PinnedLookupResult> {
+  const input = rawInput.trim();
+  if (!input) return { status: "empty" };
+
+  const fullName = parseGithubFullName(input);
+  if (!fullName) return { status: "invalid-url" };
+
+  try {
+    const item = await searchByFullName(fullName);
+    if (!item) return { status: "not-found" };
+
+    const [candidate, alternatives] = await Promise.all([
+      toCandidate(item, now),
+      // 대체 오픈소스 근거에서 이름 자체를 걸러내는 기준은 레포지토리 이름만
+      // 써야 한다("anza-xyz/newlib" 전체가 아니라 "newlib").
+      findAlternatives([item], item.name, now),
+    ]);
+
+    return { status: "ok", candidate, alternatives };
   } catch (error) {
     if (error instanceof RateLimitedError) return { status: "rate-limited" };
     const message =

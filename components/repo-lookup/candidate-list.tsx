@@ -1,17 +1,7 @@
 import { lookupRepositories } from "@/lib/repo-lookup";
 import { AlternativeList } from "./alternative-list";
 import { CandidateCard } from "./candidate-card";
-
-function Notice({ children }: { children: React.ReactNode }) {
-  return (
-    <p
-      role="status"
-      className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground"
-    >
-      {children}
-    </p>
-  );
-}
+import { Notice } from "./notice";
 
 export async function CandidateList({ query }: { query: string }) {
   const result = await lookupRepositories(query);
