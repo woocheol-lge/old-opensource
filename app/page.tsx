@@ -24,7 +24,7 @@ export default async function Home(props: PageProps<"/">) {
         </header>
 
         <div className="flex flex-col gap-3">
-          <SearchForm defaultValue={query} repoDefaultValue={repoInput} />
+          <SearchForm defaultValue={query} />
           <RepoUrlForm defaultValue={repoInput} queryDefaultValue={query} />
         </div>
 
