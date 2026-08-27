@@ -1,6 +1,5 @@
 import { Suspense } from "react";
-import { CandidateList } from "@/components/repo-lookup/candidate-list";
-import { PinnedRepo } from "@/components/repo-lookup/pinned-repo";
+import { RepoResults } from "@/components/repo-lookup/repo-results";
 import { RepoUrlForm } from "@/components/repo-lookup/repo-url-form";
 import { SearchForm } from "@/components/repo-lookup/search-form";
 import { CAUTION_YEARS, DANGER_YEARS } from "@/lib/repo-lookup";
@@ -29,35 +28,22 @@ export default async function Home(props: PageProps<"/">) {
           <RepoUrlForm defaultValue={repoInput} queryDefaultValue={query} />
         </div>
 
-        {repoInput ? (
+        {repoInput || query ? (
           <Suspense
-            key={repoInput}
+            key={`${repoInput}:${query}`}
             fallback={
               <p role="status" className="text-sm text-muted-foreground">
-                {repoInput} 레포지토리를 확인하는 중입니다.
+                {repoInput || query} 레포지토리를 확인하는 중입니다.
               </p>
             }
           >
-            <PinnedRepo input={repoInput} />
+            <RepoResults query={query} repoInput={repoInput} />
           </Suspense>
-        ) : null}
-
-        {query ? (
-          <Suspense
-            key={query}
-            fallback={
-              <p role="status" className="text-sm text-muted-foreground">
-                {query} 레포지토리를 찾는 중입니다.
-              </p>
-            }
-          >
-            <CandidateList query={query} />
-          </Suspense>
-        ) : !repoInput ? (
+        ) : (
           <p className="text-sm text-muted-foreground">
             확인할 오픈소스 이름을 입력해 주세요.
           </p>
-        ) : null}
+        )}
       </main>
     </div>
   );
