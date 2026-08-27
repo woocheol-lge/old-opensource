@@ -75,6 +75,12 @@ export async function searchByName(name: string): Promise<GithubSearchItem[]> {
  * `owner/name`을 정확히 지정해 레포지토리 하나를 찾는다.
  * `repo:` 한정자도 search 버킷을 쓰므로 `/repos/{owner}/{repo}`(core 버킷)로
  * 바꿀 필요가 없다. 존재하지 않는 레포지토리는 422를 돌려주므로 null로 다룬다.
+ *
+ * 다만 `repo:` 한정자는 레포지토리 이름에 점(.)이 있으면(예: underscore.js)
+ * 실제로 존재해도 422를 돌려준다. `user:`/`org:`와 조합해도 마찬가지였다.
+ * 반면 `searchByName`이 쓰는 `in:name`은 점이 있어도 정상 동작한다. 이건
+ * GitHub 검색 자체의 한계로 보이며, 호출하는 쪽은 422를 "존재하지 않음"이
+ * 아니라 "이 방식으로는 확인하지 못함"으로 다뤄야 오해를 만들지 않는다.
  */
 export async function searchByFullName(
   fullName: string
