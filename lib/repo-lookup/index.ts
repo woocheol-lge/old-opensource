@@ -216,3 +216,32 @@ export async function lookupRepositoryByUrl(
     return { status: "failed", message };
   }
 }
+
+export type RepoLookupResult =
+  | ({ mode: "list" } & LookupResult)
+  | ({ mode: "single" } & PinnedLookupResult);
+
+/**
+ * 입력칸 하나로 이름 검색과 링크 확인을 함께 받는다.
+ * `owner/repo` 표기나 GitHub 링크로 알아볼 수 있으면 정확히 하나를 찾고
+ * (single), 그렇지 않으면 이름으로 후보 여러 개를 찾는다(list).
+ *
+ * 두 입력칸을 따로 두고 값을 서로 실어 나르던 이전 방식은, 화면에서
+ * 지운 값이 서버에는 그대로 남아 있다가 되살아나는 문제가 있었다.
+ * 입력칸을 하나로 합치면 그 문제 자체가 생기지 않는다.
+ */
+export async function lookupRepository(
+  rawInput: string,
+  now: Date = new Date()
+): Promise<RepoLookupResult> {
+  const input = rawInput.trim();
+  const fullName = parseGithubFullName(input);
+
+  if (fullName) {
+    const result = await lookupRepositoryByUrl(input, now);
+    return { mode: "single", ...result };
+  }
+
+  const result = await lookupRepositories(input, now);
+  return { mode: "list", ...result };
+}

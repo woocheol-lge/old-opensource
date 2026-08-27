@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { lookupRepositories, lookupRepositoryByUrl } from "./index";
+import {
+  lookupRepositories,
+  lookupRepository,
+  lookupRepositoryByUrl,
+} from "./index";
 
 const NOW = new Date("2026-08-27T00:00:00Z");
 
@@ -187,5 +191,85 @@ describe("lookupRepositoryByUrl: 알고 있는 레포지토리 직접 지정", (
     );
 
     expect(result.status).toBe("rate-limited");
+  });
+});
+
+describe("lookupRepository: 입력 하나로 이름 검색과 링크 확인을 분기", () => {
+  it("슬래시 없는 이름은 이름 검색(list)으로 간다", async () => {
+    const primary = [searchItem("acme/widget")];
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/search/repositories")) {
+        if (url.includes("in%3Aname") || url.includes("in:name")) {
+          return jsonResponse({ items: primary });
+        }
+        return jsonResponse({ items: [] });
+      }
+      if (url.includes("/commits/")) {
+        return new Response(atomFeed("2026-08-20T00:00:00Z"), { status: 200 });
+      }
+      throw new Error(`예상하지 못한 호출: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await lookupRepository("widget", NOW);
+
+    expect(result.mode).toBe("list");
+    expect(result.status).toBe("ok");
+  });
+
+  it("owner/repo 표기는 링크 확인(single)으로 간다", async () => {
+    const item = searchItem("acme/widget");
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/search/repositories")) {
+        if (url.includes(encodeURIComponent("repo:acme/widget"))) {
+          return jsonResponse({ items: [item] });
+        }
+        return jsonResponse({ items: [] });
+      }
+      if (url.includes("/commits/")) {
+        return new Response(atomFeed("2026-08-20T00:00:00Z"), { status: 200 });
+      }
+      throw new Error(`예상하지 못한 호출: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await lookupRepository("acme/widget", NOW);
+
+    expect(result.mode).toBe("single");
+    expect(result.status).toBe("ok");
+    if (result.mode === "single" && result.status === "ok") {
+      expect(result.candidate.fullName).toBe("acme/widget");
+    }
+  });
+
+  it("GitHub 링크도 링크 확인(single)으로 간다", async () => {
+    const item = searchItem("acme/widget");
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/search/repositories")) {
+        if (url.includes(encodeURIComponent("repo:acme/widget"))) {
+          return jsonResponse({ items: [item] });
+        }
+        return jsonResponse({ items: [] });
+      }
+      if (url.includes("/commits/")) {
+        return new Response(atomFeed("2026-08-20T00:00:00Z"), { status: 200 });
+      }
+      throw new Error(`예상하지 못한 호출: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await lookupRepository(
+      "https://github.com/acme/widget",
+      NOW
+    );
+
+    expect(result.mode).toBe("single");
+    expect(result.status).toBe("ok");
   });
 });
