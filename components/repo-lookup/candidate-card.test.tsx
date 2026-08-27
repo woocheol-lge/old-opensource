@@ -39,10 +39,18 @@ describe("CandidateCard", () => {
     expect(link).toHaveTextContent("eblot/newlib");
   });
 
-  it("라이선스 정보가 없으면 없다는 사실을 드러낸다", () => {
+  it("라이선스 정보가 없으면 없다는 사실을 빨간색으로 드러낸다", () => {
     renderCard({ license: null });
 
-    expect(screen.getByText("라이선스 표기 없음")).toBeInTheDocument();
+    const license = screen.getByText("라이선스 표기 없음");
+    expect(license).toBeInTheDocument();
+    expect(license.className).toMatch(/text-red-700/);
+  });
+
+  it("라이선스가 있으면 빨간색을 붙이지 않는다", () => {
+    renderCard({ license: "MIT" });
+
+    expect(screen.getByText("MIT").className).not.toMatch(/text-red-700/);
   });
 
   it("마지막 커밋을 가져오지 못하면 확인 불가로 표시하고 경고를 붙이지 않는다", () => {
