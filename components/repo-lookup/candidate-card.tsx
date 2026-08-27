@@ -1,4 +1,5 @@
 import type { RepositoryCandidate } from "@/lib/repo-lookup";
+import { cn } from "@/lib/utils";
 import { WarningBadge } from "./warning-badge";
 
 function formatDate(iso: string | null): string {
@@ -50,7 +51,13 @@ export function CandidateCard({
         </div>
         <div className="flex gap-1.5">
           <dt className="text-muted-foreground">라이선스</dt>
-          <dd data-field="license">
+          <dd
+            data-field="license"
+            className={cn(
+              !candidate.license &&
+                "font-medium text-red-700 dark:text-red-300"
+            )}
+          >
             {candidate.license ?? "라이선스 표기 없음"}
           </dd>
         </div>
