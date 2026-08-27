@@ -71,6 +71,26 @@ export async function searchByName(name: string): Promise<GithubSearchItem[]> {
   return searchRepositories(`${name} in:name`, CANDIDATE_LIMIT);
 }
 
+/**
+ * `owner/name`을 정확히 지정해 레포지토리 하나를 찾는다.
+ * `repo:` 한정자도 search 버킷을 쓰므로 `/repos/{owner}/{repo}`(core 버킷)로
+ * 바꿀 필요가 없다. 존재하지 않는 레포지토리는 422를 돌려주므로 null로 다룬다.
+ */
+export async function searchByFullName(
+  fullName: string
+): Promise<GithubSearchItem | null> {
+  const response = await request(
+    `/search/repositories?q=${encodeURIComponent(`repo:${fullName}`)}`
+  );
+  if (response.status === 422) return null;
+  if (!response.ok) {
+    throw new Error(`GitHub 검색에 실패했습니다. (${response.status})`);
+  }
+
+  const body = (await response.json()) as { items?: GithubSearchItem[] };
+  return body.items?.[0] ?? null;
+}
+
 /** 목록에 올릴 대체 오픈소스 수. 후보 목록보다 짧게 둔다. */
 export const ALTERNATIVE_LIMIT = 5;
 

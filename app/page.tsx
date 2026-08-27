@@ -1,11 +1,14 @@
 import { Suspense } from "react";
 import { CandidateList } from "@/components/repo-lookup/candidate-list";
+import { PinnedRepo } from "@/components/repo-lookup/pinned-repo";
+import { RepoUrlForm } from "@/components/repo-lookup/repo-url-form";
 import { SearchForm } from "@/components/repo-lookup/search-form";
 import { CAUTION_YEARS, DANGER_YEARS } from "@/lib/repo-lookup";
 
 export default async function Home(props: PageProps<"/">) {
-  const { q } = await props.searchParams;
+  const { q, repo } = await props.searchParams;
   const query = typeof q === "string" ? q.trim() : "";
+  const repoInput = typeof repo === "string" ? repo.trim() : "";
 
   return (
     <div className="flex flex-1 justify-center bg-muted/30 px-6 py-16">
@@ -21,7 +24,23 @@ export default async function Home(props: PageProps<"/">) {
           </p>
         </header>
 
-        <SearchForm defaultValue={query} />
+        <div className="flex flex-col gap-3">
+          <SearchForm defaultValue={query} repoDefaultValue={repoInput} />
+          <RepoUrlForm defaultValue={repoInput} queryDefaultValue={query} />
+        </div>
+
+        {repoInput ? (
+          <Suspense
+            key={repoInput}
+            fallback={
+              <p role="status" className="text-sm text-muted-foreground">
+                {repoInput} 레포지토리를 확인하는 중입니다.
+              </p>
+            }
+          >
+            <PinnedRepo input={repoInput} />
+          </Suspense>
+        ) : null}
 
         {query ? (
           <Suspense
@@ -34,11 +53,11 @@ export default async function Home(props: PageProps<"/">) {
           >
             <CandidateList query={query} />
           </Suspense>
-        ) : (
+        ) : !repoInput ? (
           <p className="text-sm text-muted-foreground">
             확인할 오픈소스 이름을 입력해 주세요.
           </p>
-        )}
+        ) : null}
       </main>
     </div>
   );

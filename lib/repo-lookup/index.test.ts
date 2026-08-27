@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { lookupRepositories } from "./index";
+import { lookupRepositories, lookupRepositoryByUrl } from "./index";
 
 const NOW = new Date("2026-08-27T00:00:00Z");
 
@@ -115,6 +115,76 @@ describe("lookupRepositories: 대체 검색 실패 격리", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await lookupRepositories("widget", NOW);
+
+    expect(result.status).toBe("rate-limited");
+  });
+});
+
+describe("lookupRepositoryByUrl: 알고 있는 레포지토리 직접 지정", () => {
+  it("GitHub 링크로 레포지토리 하나를 정확히 찾는다", async () => {
+    const item = searchItem("acme/widget");
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes("/search/repositories")) {
+        expect(url).toContain(encodeURIComponent("repo:acme/widget"));
+        return jsonResponse({ items: [item] });
+      }
+      if (url.includes("/commits/")) {
+        return new Response(atomFeed("2026-08-20T00:00:00Z"), { status: 200 });
+      }
+
+      throw new Error(`예상하지 못한 호출: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await lookupRepositoryByUrl(
+      "https://github.com/acme/widget",
+      NOW
+    );
+
+    expect(result.status).toBe("ok");
+    if (result.status === "ok") {
+      expect(result.candidate.fullName).toBe("acme/widget");
+    }
+  });
+
+  it("알아볼 수 없는 링크는 invalid-url을 돌려준다", async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new Error("호출되면 안 된다");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await lookupRepositoryByUrl("이건 링크가 아니다", NOW);
+
+    expect(result.status).toBe("invalid-url");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("존재하지 않는 레포지토리는 not-found를 돌려준다", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response("{}", { status: 422 })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await lookupRepositoryByUrl(
+      "https://github.com/nobody/nothing",
+      NOW
+    );
+
+    expect(result.status).toBe("not-found");
+  });
+
+  it("한도 초과면 rate-limited를 돌려준다", async () => {
+    const fetchMock = vi.fn(async () => rateLimitedResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await lookupRepositoryByUrl(
+      "https://github.com/acme/widget",
+      NOW
+    );
 
     expect(result.status).toBe("rate-limited");
   });
