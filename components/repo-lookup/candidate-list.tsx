@@ -9,9 +9,8 @@ export async function CandidateList({ query }: { query: string }) {
   if (result.status === "rate-limited") {
     return (
       <Notice>
-        GitHub 검색 요청이 잠시 몰렸습니다. 비인증 상태에서는 검색을 분당
-        10회까지 쓸 수 있습니다. 잠깐 기다렸다가 다시 시도하거나 GITHUB_TOKEN
-        환경변수를 설정해 주세요.
+        GitHub 검색 요청이 잠시 몰렸습니다. 분당 10회까지 쓸 수 있으니, 잠깐
+        기다렸다가 다시 시도해 주세요.
       </Notice>
     );
   }
