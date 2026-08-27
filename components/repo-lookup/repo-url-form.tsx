@@ -21,6 +21,7 @@ export function RepoUrlForm({
         id="repo"
         name="repo"
         type="text"
+        autoComplete="off"
         defaultValue={defaultValue}
         placeholder="이미 아는 레포지토리라면 GitHub 링크 (예: https://github.com/owner/repo)"
         className="h-10 flex-1 rounded-md border border-dashed border-border bg-background px-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
